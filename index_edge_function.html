@@ -1,0 +1,3021 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>发现天赋 - 职业兴趣测评</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366F1;
+      --primary-dark: #4F46E5;
+      --secondary: #8B5CF6;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --gray-50: #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-300: #D1D5DB;
+      --gray-400: #9CA3AF;
+      --gray-500: #6B7280;
+      --gray-600: #4B5563;
+      --gray-700: #374151;
+      --gray-800: #1F2937;
+      --gray-900: #111827;
+      --gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: var(--gray-800);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 32px 24px;
+      box-shadow: var(--shadow-lg);
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes hoverScale {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+      animation: slideUp 0.5s ease;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--gray-500);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: var(--gradient);
+      border-radius: 20px;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      box-shadow: var(--shadow);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: var(--gradient);
+      color: white;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-secondary {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-200);
+    }
+
+    .btn-danger {
+      background: #FEE2E2;
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: #FECACA;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* 首页入口卡片 */
+    .menu-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .menu-card {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
+      border: 2px solid transparent;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary);
+      animation: hoverScale 0.5s ease;
+    }
+
+    .menu-card-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .menu-card-icon.history {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    }
+
+    .menu-card-icon.test {
+      background: var(--gradient);
+    }
+
+    .menu-card-icon.profile {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+    }
+
+    .menu-card-icon.chat {
+      background: linear-gradient(135deg, #EC4899 0%, #BE185D 100%);
+    }
+
+    .menu-card-content {
+      flex: 1;
+    }
+
+    .menu-card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 4px;
+    }
+
+    .menu-card-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    .menu-card-arrow {
+      color: var(--gray-400);
+      font-size: 24px;
+    }
+
+    /* AI聊天页面样式 */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 140px);
+      min-height: 500px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-message {
+      display: flex;
+      gap: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .chat-message.user {
+      flex-direction: row-reverse;
+    }
+
+    .chat-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .chat-message.assistant .chat-avatar {
+      background: var(--gradient);
+    }
+
+    .chat-message.user .chat-avatar {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    }
+
+    .chat-bubble {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .chat-message.assistant .chat-bubble {
+      background: var(--gray-100);
+      color: var(--gray-800);
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-message.user .chat-bubble {
+      background: var(--primary);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-input-container {
+      display: flex;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--gray-200);
+      align-items: flex-end;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: 12px;
+      font-size: 14px;
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+      transition: border-color 0.3s ease;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .chat-send-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--gradient);
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat-send-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .chat-send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 8px 12px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gray-400);
+      animation: typingBounce 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-8px); }
+    }
+
+    /* 测评选择页 */
+    .test-option {
+      background: var(--gray-50);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .test-option:hover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .test-option-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .test-option-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .test-option-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .test-option-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-bottom: 12px;
+    }
+
+    .test-option-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .test-option-tag {
+      padding: 4px 10px;
+      background: var(--gray-100);
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--gray-600);
+    }
+
+    /* 表单样式 */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-700);
+      margin-bottom: 8px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: 12px;
+      font-size: 14px;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .switch-text {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--gray-500);
+    }
+
+    .switch-text a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* 导航头部 */
+    .header-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .header-back {
+      font-size: 28px;
+      color: var(--gray-400);
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .header-back:hover {
+      background: var(--gray-100);
+      color: var(--gray-600);
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .header-placeholder {
+      width: 40px;
+    }
+
+    /* 进度条 */
+    .progress-container {
+      margin-bottom: 20px;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--gray-200);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--gradient);
+      transition: width 0.3s ease;
+    }
+
+    /* 维度标签 */
+    .dimension-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--gray-100);
+      border-radius: 16px;
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-bottom: 16px;
+    }
+
+    .dimension-badge .icon {
+      font-size: 14px;
+    }
+
+    /* 题目样式 */
+    .question-item {
+      background: var(--gray-50);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .question-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .question-number {
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .question-text {
+      font-size: 14px;
+      color: var(--gray-800);
+      line-height: 1.6;
+    }
+
+    .question-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .option-btn {
+      padding: 12px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: 12px;
+      background: white;
+      font-size: 13px;
+      color: var(--gray-700);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .option-btn:hover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .option-btn.selected {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+    }
+
+    /* 导航按钮 */
+    .navigation {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    /* 结果页面 */
+    .result-header {
+      text-align: center;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--gray-200);
+      margin-bottom: 24px;
+    }
+
+    .result-type {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+
+    .result-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 4px;
+    }
+
+    .result-full-name {
+      font-size: 14px;
+      color: var(--gray-500);
+    }
+
+    .score-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .score-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .score-info {
+      flex: 1;
+    }
+
+    .score-name {
+      font-size: 13px;
+      color: var(--gray-600);
+      margin-bottom: 4px;
+    }
+
+    .score-bar {
+      height: 6px;
+      background: var(--gray-200);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .score-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .score-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .traits-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .trait-tag {
+      padding: 6px 14px;
+      background: var(--gray-100);
+      border-radius: 16px;
+      font-size: 12px;
+      color: var(--gray-600);
+    }
+
+    .career-card {
+      background: var(--gray-50);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .career-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 4px;
+    }
+
+    .career-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    .chart-container {
+      width: 100%;
+      max-width: 280px;
+      margin: 20px auto;
+    }
+
+    /* 历史记录 */
+    .history-item {
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .history-item:hover {
+      background: var(--gray-100);
+    }
+
+    .history-date {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-bottom: 8px;
+    }
+
+    .history-badge {
+      padding: 2px 8px;
+      background: var(--gray-200);
+      border-radius: 8px;
+      font-size: 11px;
+      margin-left: 8px;
+    }
+
+    .history-result {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-type {
+      font-size: 20px;
+    }
+
+    .history-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    /* 个人中心 */
+    .profile-header {
+      text-align: center;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--gray-200);
+      margin-bottom: 24px;
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      background: var(--gradient);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 600;
+      margin: 0 auto 16px;
+    }
+
+    .profile-name {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 4px;
+    }
+
+    .profile-phone {
+      font-size: 14px;
+      color: var(--gray-500);
+    }
+
+    .profile-section {
+      margin-bottom: 24px;
+    }
+
+    .profile-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-500);
+      margin-bottom: 12px;
+    }
+
+    .profile-menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 8px;
+    }
+
+    .profile-menu-item:hover {
+      background: var(--gray-100);
+    }
+
+    .profile-menu-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .profile-menu-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .profile-menu-text {
+      font-size: 14px;
+      color: var(--gray-700);
+    }
+
+    .profile-menu-arrow {
+      color: var(--gray-400);
+      font-size: 18px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border-radius: 24px;
+      font-size: 14px;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* 加载遮罩 */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 确认弹窗 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      margin: 20px;
+      max-width: 320px;
+      width: 100%;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .modal-content {
+      font-size: 14px;
+      color: var(--gray-600);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .modal-buttons .btn {
+      flex: 1;
+    }
+
+    /* PDF模板 */
+    .pdf-template {
+      display: none;
+      position: fixed;
+      top: -9999px;
+      left: -9999px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 加载遮罩 -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Toast提示 -->
+  <div id="toast" class="toast"></div>
+
+  <!-- 确认弹窗 -->
+  <div id="confirmModal" class="modal-overlay" onclick="closeConfirmModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-title" id="confirmTitle">确认操作</div>
+      <div class="modal-content" id="confirmContent">确定要执行此操作吗？</div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeConfirmModal()">取消</button>
+        <button class="btn btn-danger" id="confirmBtn" onclick="executeConfirm()">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- 首页 -->
+    <div id="homePage" class="page active">
+      <div class="card">
+        <div class="logo" style="background: transparent; box-shadow: none; width: 100px; height: 100px;">
+          <img src="https://qbkuhyqbwucquqcimiot.supabase.co/storage/v1/object/public/images/qiming-logo.png" alt="启明商标" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+        <h1>坚林职业指导专家</h1>
+        <p class="subtitle">探索你的职业兴趣与多元智能</p>
+
+        <div class="menu-cards">
+          <div class="menu-card" onclick="handleMenuCard('test')">
+            <div class="menu-card-icon test">🎯</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">开始测评</div>
+              <div class="menu-card-desc">选择测评类型开始测试</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+
+          <div class="menu-card" onclick="handleMenuCard('chat')">
+            <div class="menu-card-icon chat">💬</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">AI职业咨询</div>
+              <div class="menu-card-desc">与职业指导专家对话</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+
+          <div class="menu-card" onclick="handleMenuCard('history')">
+            <div class="menu-card-icon history">📋</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">历史记录</div>
+              <div class="menu-card-desc">查看历次测评结果</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+
+          <div class="menu-card" onclick="handleMenuCard('profile')">
+            <div class="menu-card-icon profile">👤</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">个人中心</div>
+              <div class="menu-card-desc" id="homeNickname">登录账号管理信息</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI聊天页面 -->
+    <div id="chatPage" class="page">
+      <div class="card" style="height: calc(100vh - 40px); display: flex; flex-direction: column;">
+        <div class="header-nav">
+          <div class="header-back" onclick="showPage('homePage')">‹</div>
+          <div class="header-title">AI职业咨询</div>
+          <div class="header-placeholder"></div>
+        </div>
+        
+        <div class="chat-container">
+          <div class="chat-messages" id="chatMessages">
+            <!-- 消息将动态渲染 -->
+          </div>
+          
+          <div class="chat-input-container">
+            <textarea class="chat-input" id="chatInput" placeholder="输入你的问题..." rows="1" onkeydown="handleChatKeydown(event)"></textarea>
+            <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage()">
+              ➤
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 测评选择页 -->
+    <div id="selectPage" class="page">
+      <div class="card">
+        <div class="header-nav">
+          <div class="header-back" onclick="showPage('homePage')">‹</div>
+          <div class="header-title">选择测评</div>
+          <div class="header-placeholder"></div>
+        </div>
+
+        <h2>选择你要做的测评</h2>
+        <p class="subtitle">发现你的职业兴趣与智能优势</p>
+
+        <div class="test-option" onclick="startTest('holland')">
+          <div class="test-option-header">
+            <div class="test-option-icon" style="background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);">🧭</div>
+            <div class="test-option-title">霍兰德职业兴趣测评（7维度）</div>
+          </div>
+          <div class="test-option-desc">了解你的职业兴趣类型，发现适合的工作方向</div>
+          <div class="test-option-tags">
+            <span class="test-option-tag">🔧 R实际型</span>
+            <span class="test-option-tag">🔬 I研究型</span>
+            <span class="test-option-tag">🎨 A艺术型</span>
+            <span class="test-option-tag">🤝 S社会型</span>
+            <span class="test-option-tag">💼 E企业型</span>
+            <span class="test-option-tag">📋 C常规型</span>
+            <span class="test-option-tag">🤖 AI智能型</span>
+            <span class="test-option-tag" style="background: #E0E7FF; color: #4F46E5;">49道题</span>
+            <span class="test-option-tag" style="background: #E0E7FF; color: #4F46E5;">5分制</span>
+          </div>
+        </div>
+
+        <div class="test-option" onclick="startTest('mi')">
+          <div class="test-option-header">
+            <div class="test-option-icon" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%);">🧠</div>
+            <div class="test-option-title">多元智能测评（8个方向）</div>
+          </div>
+          <div class="test-option-desc">发现你在不同智能领域的天赋优势</div>
+          <div class="test-option-tags">
+            <span class="test-option-tag">📚 语言</span>
+            <span class="test-option-tag">🔢 逻辑数学</span>
+            <span class="test-option-tag">🎨 空间</span>
+            <span class="test-option-tag">🏃 身体运动</span>
+            <span class="test-option-tag">🎵 音乐</span>
+            <span class="test-option-tag">🤝 人际</span>
+            <span class="test-option-tag">🧘 内省</span>
+            <span class="test-option-tag">🌿 自然</span>
+            <span class="test-option-tag" style="background: #D1FAE5; color: #059669;">56道题</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="showPage('homePage')">
+            返回首页
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 登录页 -->
+    <div id="loginPage" class="page">
+      <div class="card">
+        <h2>登录账号</h2>
+        <p class="subtitle">已有账号？直接登录开始测评</p>
+        
+        <div class="form-group">
+          <label>手机号</label>
+          <input type="tel" id="loginPhone" placeholder="请输入手机号" maxlength="11">
+        </div>
+        
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="loginPassword" placeholder="请输入密码">
+        </div>
+
+        <button class="btn btn-primary" onclick="handleLogin()">
+          登录
+        </button>
+
+        <p class="switch-text">
+          还没有账号？<a href="javascript:;" onclick="showPage('registerPage')">立即注册</a>
+        </p>
+
+        <button class="btn btn-secondary" style="margin-top: 12px;" onclick="showPage('homePage')">
+          返回首页
+        </button>
+      </div>
+    </div>
+
+    <!-- 注册页 -->
+    <div id="registerPage" class="page">
+      <div class="card">
+        <h2>注册账号</h2>
+        <p class="subtitle">创建账号，保存你的测评记录</p>
+        
+        <div class="form-group">
+          <label>手机号</label>
+          <input type="tel" id="regPhone" placeholder="请输入手机号" maxlength="11">
+        </div>
+        
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="regPassword" placeholder="请设置密码（6位以上）">
+        </div>
+
+        <div class="form-group">
+          <label>昵称</label>
+          <input type="text" id="regNickname" placeholder="请输入昵称">
+        </div>
+
+        <button class="btn btn-primary" onclick="handleRegister()">
+          注册
+        </button>
+
+        <p class="switch-text">
+          已有账号？<a href="javascript:;" onclick="showPage('loginPage')">立即登录</a>
+        </p>
+
+        <button class="btn btn-secondary" style="margin-top: 12px;" onclick="showPage('homePage')">
+          返回首页
+        </button>
+      </div>
+    </div>
+
+    <!-- 测评页 -->
+    <div id="testPage" class="page">
+      <div class="card">
+        <div class="header-nav">
+          <div class="header-back" onclick="handleTestBack()">‹</div>
+          <div class="header-title" id="testTitle">霍兰德测评</div>
+          <div class="header-placeholder"></div>
+        </div>
+
+        <div class="progress-container">
+          <div class="progress-info">
+            <span id="progressText">第 1-7 题</span>
+            <span id="progressPercent">14%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 14%"></div>
+          </div>
+        </div>
+
+        <div class="dimension-badge" id="dimensionBadge">
+          <span class="icon">📑</span>
+          <span>第 1 页 / 共 7 页</span>
+        </div>
+
+        <div id="questionsContainer">
+          <!-- 题目动态渲染 -->
+        </div>
+
+        <div class="navigation">
+          <button class="btn btn-secondary" id="prevBtn" onclick="prevPage()" style="display: none;">
+            ← 上一部分
+          </button>
+          <button class="btn btn-secondary" id="saveBackBtn" onclick="saveAndGoHome()">
+            💾 暂存并返回
+          </button>
+          <button class="btn btn-primary" id="nextBtn" onclick="nextPage()">
+            下一部分 →
+          </button>
+          <button class="btn btn-primary" id="submitBtn" onclick="submitTest()" style="display: none;">
+            查看结果 →
+          </button>
+        </div>
+
+        <div style="margin-top: 12px; text-align: center;">
+          <button class="btn btn-secondary" onclick="showPage('homePage')" style="width: auto; padding: 10px 20px;">
+            🏠 返回主页
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 霍兰德结果页 -->
+    <div id="hollandResultPage" class="page">
+      <div class="card">
+        <div class="header-nav">
+          <div class="header-back" onclick="showPage('homePage')">‹</div>
+          <div class="header-title">测评结果</div>
+          <div class="header-placeholder"></div>
+        </div>
+
+        <div class="result-header">
+          <div class="result-type" id="resultType">🔬</div>
+          <div class="result-name" id="resultName">研究型</div>
+          <div class="result-full-name" id="resultFullName">Investigative</div>
+        </div>
+
+        <h3>📊 各维度得分</h3>
+        <div id="scoresList">
+          <!-- 动态渲染 -->
+        </div>
+
+        <div class="chart-container">
+          <canvas id="radarChart"></canvas>
+        </div>
+
+        <h3>✨ 性格特质</h3>
+        <div class="traits-list" id="traitsList">
+          <!-- 动态渲染 -->
+        </div>
+
+        <h3>💼 推荐职业</h3>
+        <div id="careersList">
+          <!-- 动态渲染 -->
+        </div>
+
+        <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
+          <button class="btn btn-primary" onclick="downloadPDF()">
+            📥 下载PDF报告
+          </button>
+          <button class="btn btn-secondary" onclick="resetAndRetest()">
+            🔄 再次测评
+          </button>
+          <button class="btn btn-secondary" onclick="loadHistory()">
+            📋 查看历史记录
+          </button>
+          <button class="btn btn-secondary" onclick="showPage('homePage')">
+            🏠 返回主页
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 多元智能结果页 -->
+    <div id="miResultPage" class="page">
+      <div class="card">
+        <div class="header-nav">
+          <div class="header-back" onclick="showPage('homePage')">‹</div>
+          <div class="header-title">测评结果</div>
+          <div class="header-placeholder"></div>
+        </div>
+
+        <div class="result-header">
+          <div class="result-type" id="miResultType">🧠</div>
+          <div class="result-name" id="miResultName">逻辑数学智能</div>
+          <div class="result-full-name" id="miResultFullName"></div>
+        </div>
+
+        <h3>📊 各智能得分</h3>
+        <div id="miScoresList">
+          <!-- 动态渲染 -->
+        </div>
+
+        <div class="chart-container">
+          <canvas id="miRadarChart"></canvas>
+        </div>
+
+        <h3>✨ 智能特点</h3>
+        <div class="traits-list" id="miTraitsList">
+          <!-- 动态渲染 -->
+        </div>
+
+        <h3>💼 推荐发展方向</h3>
+        <div id="miCareersList">
+          <!-- 动态渲染 -->
+        </div>
+
+        <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
+          <button class="btn btn-primary" onclick="downloadMIPDF()">
+            📥 下载PDF报告
+          </button>
+          <button class="btn btn-secondary" onclick="resetMITest()">
+            🔄 再次测评
+          </button>
+          <button class="btn btn-secondary" onclick="loadHistory()">
+            📋 查看历史记录
+          </button>
+          <button class="btn btn-secondary" onclick="showPage('homePage')">
+            🏠 返回主页
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 历史记录页 -->
+    <div id="historyPage" class="page">
+      <div class="card">
+        <div class="header-nav">
+          <div class="header-back" onclick="showPage('homePage')">‹</div>
+          <div class="header-title">历史记录</div>
+          <div class="header-placeholder"></div>
+        </div>
+        
+        <div id="historyList">
+          <!-- 动态渲染 -->
+        </div>
+
+        <div style="margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="loadHistory()">
+            刷新记录
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 个人中心页 -->
+    <div id="profilePage" class="page">
+      <div class="card">
+        <div class="header-nav">
+          <div class="header-back" onclick="showPage('homePage')">‹</div>
+          <div class="header-title">个人中心</div>
+          <div class="header-placeholder"></div>
+        </div>
+
+        <div class="profile-header">
+          <div class="profile-avatar" id="profileAvatar">U</div>
+          <div class="profile-name" id="profileName">用户</div>
+          <div class="profile-phone" id="profilePhone">手机号</div>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-section-title">账号管理</div>
+          <div class="profile-menu-item" onclick="handleLogout()">
+            <div class="profile-menu-item-left">
+              <div class="profile-menu-icon" style="background: #FEE2E2; color: #EF4444;">🚪</div>
+              <div class="profile-menu-text">退出登录</div>
+            </div>
+            <div class="profile-menu-arrow">›</div>
+          </div>
+          <div class="profile-menu-item" onclick="confirmDeleteAccount()">
+            <div class="profile-menu-item-left">
+              <div class="profile-menu-icon" style="background: #FEE2E2; color: #EF4444;">🗑️</div>
+              <div class="profile-menu-text" style="color: #EF4444;">删除账号</div>
+            </div>
+            <div class="profile-menu-arrow">›</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 32px; text-align: center;">
+          <button class="btn btn-secondary" onclick="showPage('homePage')">
+            返回首页
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF模板（隐藏） -->
+  <div id="pdfTemplate" class="pdf-template">
+    <div id="pdfContent" style="width: 794px; padding: 40px; font-family: 'Helvetica Neue', Arial, sans-serif; background: white; box-sizing: border-box;">
+      <!-- 动态内容 -->
+    </div>
+  </div>
+
+  <script>
+    // ========== Supabase 配置 ==========
+    const SUPABASE_URL = 'https://qbkuhyqbwucquqcimiot.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFia3VoeXFid3VjcXVxY2ltaW90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NDU1MTEsImV4cCI6MjA5MTQyMTUxMX0.flNlvg8iq8-Zxnl5X0Kpz80sjhDAWuhkgGOLhNnVG10';
+    
+    // Edge Function URL（部署后替换为实际URL）
+    const EDGE_FUNCTION_URL = 'https://qbkuhyqbwucquqcimiot.supabase.co/functions/v1/ai-chat';
+
+    // 初始化 Supabase
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ========== 全局状态 ==========
+    let currentUser = null;
+    let currentTestType = 'holland';
+    let currentPage = 1;
+    let answers = {};
+    let testResults = null;
+    let miResults = null;
+    let radarChart = null;
+    let miRadarChart = null;
+    let confirmCallback = null;
+    
+    // AI聊天相关状态
+    let chatHistory = [];
+    let isChatLoading = false;
+
+    // ========== 霍兰德测评数据 ==========
+    const dimensions = [
+      { code: 'R', name: '实际型', fullName: 'Realistic', description: '动手操作型', color: '#4CAF50', icon: '🔧' },
+      { code: 'I', name: '研究型', fullName: 'Investigative', description: '分析思考型', color: '#2196F3', icon: '🔬' },
+      { code: 'A', name: '艺术型', fullName: 'Artistic', description: '创意表达型', color: '#9C27B0', icon: '🎨' },
+      { code: 'S', name: '社会型', fullName: 'Social', description: '助人服务型', color: '#FF9800', icon: '🤝' },
+      { code: 'E', name: '企业型', fullName: 'Enterprising', description: '领导影响型', color: '#F44336', icon: '💼' },
+      { code: 'C', name: '常规型', fullName: 'Conventional', description: '规范有序型', color: '#607D8B', icon: '📋' },
+      { code: 'AI', name: 'AI智能型', fullName: 'Artificial Intelligence', description: '智能应用型', color: '#00BCD4', icon: '🤖' }
+    ];
+
+    const hollandQuestions = [
+      { id: 1, dimension: 'R', dimensionName: '实际型', question: '我喜欢用手制作东西，如木工、编织或修理物品', icon: '🔧' },
+      { id: 2, dimension: 'R', dimensionName: '实际型', question: '我享受修理坏掉的物品，如电器、家具等', icon: '🔧' },
+      { id: 3, dimension: 'R', dimensionName: '实际型', question: '我更喜欢在户外工作，而不是长时间坐在办公室', icon: '🔧' },
+      { id: 4, dimension: 'R', dimensionName: '实际型', question: '我擅长使用各种工具和机械设备', icon: '🔧' },
+      { id: 5, dimension: 'R', dimensionName: '实际型', question: '我喜欢运动和体力活动，如跑步、游泳或打球', icon: '🔧' },
+      { id: 6, dimension: 'R', dimensionName: '实际型', question: '我享受种植植物或照顾动物的过程', icon: '🔧' },
+      { id: 7, dimension: 'R', dimensionName: '实际型', question: '我喜欢操作机器或驾驶车辆', icon: '🔧' },
+      { id: 8, dimension: 'I', dimensionName: '研究型', question: '我喜欢探索未知的事物和领域', icon: '🔬' },
+      { id: 9, dimension: 'I', dimensionName: '研究型', question: '我喜欢分析复杂的问题并找出解决方案', icon: '🔬' },
+      { id: 10, dimension: 'I', dimensionName: '研究型', question: '我对科学和技术新知识很感兴趣', icon: '🔬' },
+      { id: 11, dimension: 'I', dimensionName: '研究型', question: '我喜欢阅读科学、技术或学术类文章', icon: '🔬' },
+      { id: 12, dimension: 'I', dimensionName: '研究型', question: '我善于独立思考和解决抽象问题', icon: '🔬' },
+      { id: 13, dimension: 'I', dimensionName: '研究型', question: '我喜欢参与需要深入思考的活动，如数学、编程', icon: '🔬' },
+      { id: 14, dimension: 'I', dimensionName: '研究型', question: '我倾向于先分析再行动，而不是凭直觉', icon: '🔬' },
+      { id: 15, dimension: 'A', dimensionName: '艺术型', question: '我喜欢绘画、音乐、写作或其他艺术创作', icon: '🎨' },
+      { id: 16, dimension: 'A', dimensionName: '艺术型', question: '我享受表达自己的想法和感受，不受拘束', icon: '🎨' },
+      { id: 17, dimension: 'A', dimensionName: '艺术型', question: '我对美和艺术有敏锐的感知力', icon: '🎨' },
+      { id: 18, dimension: 'A', dimensionName: '艺术型', question: '我喜欢创造独特的作品或设计', icon: '🎨' },
+      { id: 19, dimension: 'A', dimensionName: '艺术型', question: '我更喜欢灵活自由的工作方式', icon: '🎨' },
+      { id: 20, dimension: 'A', dimensionName: '艺术型', question: '我喜欢参观博物馆、画廊或观看演出', icon: '🎨' },
+      { id: 21, dimension: 'A', dimensionName: '艺术型', question: '我经常有创意灵感，并喜欢将其实现', icon: '🎨' },
+      { id: 22, dimension: 'S', dimensionName: '社会型', question: '我喜欢帮助他人解决问题', icon: '🤝' },
+      { id: 23, dimension: 'S', dimensionName: '社会型', question: '我善于倾听他人的烦恼并提供支持', icon: '🤝' },
+      { id: 24, dimension: 'S', dimensionName: '社会型', question: '我喜欢与人交流，建立良好的人际关系', icon: '🤝' },
+      { id: 25, dimension: 'S', dimensionName: '社会型', question: '我愿意参与志愿活动或社区服务', icon: '🤝' },
+      { id: 26, dimension: 'S', dimensionName: '社会型', question: '我喜欢教导或培训他人', icon: '🤝' },
+      { id: 27, dimension: 'S', dimensionName: '社会型', question: '我在团队中善于协调和沟通', icon: '🤝' },
+      { id: 28, dimension: 'S', dimensionName: '社会型', question: '我对他人的情绪和感受很敏感', icon: '🤝' },
+      { id: 29, dimension: 'E', dimensionName: '企业型', question: '我喜欢领导和组织团队活动', icon: '💼' },
+      { id: 30, dimension: 'E', dimensionName: '企业型', question: '我善于说服他人接受我的观点', icon: '💼' },
+      { id: 31, dimension: 'E', dimensionName: '企业型', question: '我喜欢制定计划并推动执行', icon: '💼' },
+      { id: 32, dimension: 'E', dimensionName: '企业型', question: '我对商业机会有敏锐的嗅觉', icon: '💼' },
+      { id: 33, dimension: 'E', dimensionName: '企业型', question: '我享受竞争和挑战', icon: '💼' },
+      { id: 34, dimension: 'E', dimensionName: '企业型', question: '我喜欢承担责任和做决策', icon: '💼' },
+      { id: 35, dimension: 'E', dimensionName: '企业型', question: '我有强烈的目标导向和成就感', icon: '💼' },
+      { id: 36, dimension: 'C', dimensionName: '常规型', question: '我喜欢按照既定的规则和流程办事', icon: '📋' },
+      { id: 37, dimension: 'C', dimensionName: '常规型', question: '我善于整理和归档文件、数据', icon: '📋' },
+      { id: 38, dimension: 'C', dimensionName: '常规型', question: '我喜欢有条理、整洁的工作环境', icon: '📋' },
+      { id: 39, dimension: 'C', dimensionName: '常规型', question: '我对数字和细节很敏感', icon: '📋' },
+      { id: 40, dimension: 'C', dimensionName: '常规型', question: '我喜欢完成明确的、可衡量的任务', icon: '📋' },
+      { id: 41, dimension: 'C', dimensionName: '常规型', question: '我注重工作的准确性和效率', icon: '📋' },
+      { id: 42, dimension: 'C', dimensionName: '常规型', question: '我喜欢使用电子表格和办公软件', icon: '📋' },
+      { id: 43, dimension: 'AI', dimensionName: 'AI智能型', question: '我对人工智能新技术很感兴趣', icon: '🤖' },
+      { id: 44, dimension: 'AI', dimensionName: 'AI智能型', question: '我喜欢尝试使用AI工具来提高工作效率', icon: '🤖' },
+      { id: 45, dimension: 'AI', dimensionName: 'AI智能型', question: '我关注AI技术在各行业的应用', icon: '🤖' },
+      { id: 46, dimension: 'AI', dimensionName: 'AI智能型', question: '我愿意学习与AI相关的新知识', icon: '🤖' },
+      { id: 47, dimension: 'AI', dimensionName: 'AI智能型', question: '我认为AI会改变未来的工作方式', icon: '🤖' },
+      { id: 48, dimension: 'AI', dimensionName: 'AI智能型', question: '我喜欢探索AI工具的创意用法', icon: '🤖' },
+      { id: 49, dimension: 'AI', dimensionName: 'AI智能型', question: '我对AI伦理和未来发展有自己的思考', icon: '🤖' }
+    ];
+
+    const miDimensions = [
+      { code: 'L', name: '语言智能', description: '擅长语言表达和文字理解', color: '#3B82F6', icon: '📚' },
+      { code: 'M', name: '逻辑数学智能', description: '擅长逻辑推理和数学运算', color: '#10B981', icon: '🔢' },
+      { code: 'S', name: '空间智能', description: '擅长空间感知和图像思维', color: '#F59E0B', icon: '🎨' },
+      { code: 'B', name: '身体运动智能', description: '擅长身体协调和运动技能', color: '#EF4444', icon: '🏃' },
+      { code: 'U', name: '音乐智能', description: '擅长音乐感知和创作', color: '#8B5CF6', icon: '🎵' },
+      { code: 'P', name: '人际智能', description: '擅长人际交往和沟通', color: '#EC4899', icon: '🤝' },
+      { code: 'I', name: '内省智能', description: '擅长自我反思和理解', color: '#6366F1', icon: '🧘' },
+      { code: 'N', name: '自然智能', description: '擅长自然观察和生态理解', color: '#14B8A6', icon: '🌿' }
+    ];
+
+    const miQuestions = [
+      { id: 1, dimension: 'L', dimensionName: '语言智能', question: '我善于用语言表达自己的想法', icon: '📚' },
+      { id: 2, dimension: 'L', dimensionName: '语言智能', question: '我喜欢阅读各种类型的书籍', icon: '📚' },
+      { id: 3, dimension: 'L', dimensionName: '语言智能', question: '我擅长写作或讲故事', icon: '📚' },
+      { id: 4, dimension: 'L', dimensionName: '语言智能', question: '我喜欢学习新的词汇和语言', icon: '📚' },
+      { id: 5, dimension: 'L', dimensionName: '语言智能', question: '我善于倾听和理解他人说话的深层含义', icon: '📚' },
+      { id: 6, dimension: 'L', dimensionName: '语言智能', question: '我在公众场合演讲时感到自如', icon: '📚' },
+      { id: 7, dimension: 'L', dimensionName: '语言智能', question: '我喜欢玩文字游戏，如填字游戏、谜语', icon: '📚' },
+      { id: 8, dimension: 'M', dimensionName: '逻辑数学智能', question: '我喜欢解决数学问题', icon: '🔢' },
+      { id: 9, dimension: 'M', dimensionName: '逻辑数学智能', question: '我善于逻辑推理和分析', icon: '🔢' },
+      { id: 10, dimension: 'M', dimensionName: '逻辑数学智能', question: '我对数字敏感，善于计算', icon: '🔢' },
+      { id: 11, dimension: 'M', dimensionName: '逻辑数学智能', question: '我喜欢玩策略游戏，如象棋、围棋', icon: '🔢' },
+      { id: 12, dimension: 'M', dimensionName: '逻辑数学智能', question: '我善于发现事物的规律和模式', icon: '🔢' },
+      { id: 13, dimension: 'M', dimensionName: '逻辑数学智能', question: '我喜欢科学实验和探究', icon: '🔢' },
+      { id: 14, dimension: 'M', dimensionName: '逻辑数学智能', question: '我能够有条理地组织思路', icon: '🔢' },
+      { id: 15, dimension: 'S', dimensionName: '空间智能', question: '我有很好的方向感', icon: '🎨' },
+      { id: 16, dimension: 'S', dimensionName: '空间智能', question: '我善于在脑海中想象三维物体', icon: '🎨' },
+      { id: 17, dimension: 'S', dimensionName: '空间智能', question: '我喜欢绘画、设计或摄影', icon: '🎨' },
+      { id: 18, dimension: 'S', dimensionName: '空间智能', question: '我能够轻松识别颜色和形状', icon: '🎨' },
+      { id: 19, dimension: 'S', dimensionName: '空间智能', question: '我喜欢玩拼图或搭建模型', icon: '🎨' },
+      { id: 20, dimension: 'S', dimensionName: '空间智能', question: '我善于解读图表和地图', icon: '🎨' },
+      { id: 21, dimension: 'S', dimensionName: '空间智能', question: '我对视觉艺术有浓厚的兴趣', icon: '🎨' },
+      { id: 22, dimension: 'B', dimensionName: '身体运动智能', question: '我喜欢运动和体育锻炼', icon: '🏃' },
+      { id: 23, dimension: 'B', dimensionName: '身体运动智能', question: '我善于手工制作或操作工具', icon: '🏃' },
+      { id: 24, dimension: 'B', dimensionName: '身体运动智能', question: '我有良好的身体协调能力', icon: '🏃' },
+      { id: 25, dimension: 'B', dimensionName: '身体运动智能', question: '我喜欢舞蹈或戏剧表演', icon: '🏃' },
+      { id: 26, dimension: 'B', dimensionName: '身体运动智能', question: '我能够长时间保持身体活力', icon: '🏃' },
+      { id: 27, dimension: 'B', dimensionName: '身体运动智能', question: '我喜欢触摸和动手操作来学习新事物', icon: '🏃' },
+      { id: 28, dimension: 'B', dimensionName: '身体运动智能', question: '我对身体的感受很敏感', icon: '🏃' },
+      { id: 29, dimension: 'U', dimensionName: '音乐智能', question: '我对音乐节奏很敏感', icon: '🎵' },
+      { id: 30, dimension: 'U', dimensionName: '音乐智能', question: '我喜欢唱歌或演奏乐器', icon: '🎵' },
+      { id: 31, dimension: 'U', dimensionName: '音乐智能', question: '我能够辨别不同的音调和旋律', icon: '🎵' },
+      { id: 32, dimension: 'U', dimensionName: '音乐智能', question: '我经常在脑海中有音乐旋律响起', icon: '🎵' },
+      { id: 33, dimension: 'U', dimensionName: '音乐智能', question: '我喜欢各种类型的音乐', icon: '🎵' },
+      { id: 34, dimension: 'U', dimensionName: '音乐智能', question: '我能够记住歌曲的旋律和歌词', icon: '🎵' },
+      { id: 35, dimension: 'U', dimensionName: '音乐智能', question: '我对声音的变化很敏感', icon: '🎵' },
+      { id: 36, dimension: 'P', dimensionName: '人际智能', question: '我善于与他人建立友谊', icon: '🤝' },
+      { id: 37, dimension: 'P', dimensionName: '人际智能', question: '我能够理解他人的情绪和感受', icon: '🤝' },
+      { id: 38, dimension: 'P', dimensionName: '人际智能', question: '我喜欢参与团队活动', icon: '🤝' },
+      { id: 39, dimension: 'P', dimensionName: '人际智能', question: '我善于调解他人的矛盾', icon: '🤝' },
+      { id: 40, dimension: 'P', dimensionName: '人际智能', question: '我能够适应不同的社交场合', icon: '🤝' },
+      { id: 41, dimension: 'P', dimensionName: '人际智能', question: '我喜欢帮助他人解决困难', icon: '🤝' },
+      { id: 42, dimension: 'P', dimensionName: '人际智能', question: '我善于察言观色', icon: '🤝' },
+      { id: 43, dimension: 'I', dimensionName: '内省智能', question: '我经常反思自己的行为和想法', icon: '🧘' },
+      { id: 44, dimension: 'I', dimensionName: '内省智能', question: '我喜欢独处，进行自我思考', icon: '🧘' },
+      { id: 45, dimension: 'I', dimensionName: '内省智能', question: '我有明确的人生目标和价值观', icon: '🧘' },
+      { id: 46, dimension: 'I', dimensionName: '内省智能', question: '我能独立完成任务，不需要太多外部监督', icon: '🧘' },
+      { id: 47, dimension: 'I', dimensionName: '内省智能', question: '我喜欢写日记或记录内心感受', icon: '🧘' },
+      { id: 48, dimension: 'I', dimensionName: '内省智能', question: '我对自己的能力有清晰的认知', icon: '🧘' },
+      { id: 49, dimension: 'N', dimensionName: '自然智能', question: '我喜欢观察植物和动物', icon: '🌿' },
+      { id: 50, dimension: 'N', dimensionName: '自然智能', question: '我关注天气、季节和自然变化', icon: '🌿' },
+      { id: 51, dimension: 'N', dimensionName: '自然智能', question: '我喜欢户外活动，如徒步、露营等', icon: '🌿' },
+      { id: 52, dimension: 'N', dimensionName: '自然智能', question: '我能轻松辨认不同的植物和动物', icon: '🌿' },
+      { id: 53, dimension: 'N', dimensionName: '自然智能', question: '我喜欢保护和照顾环境', icon: '🌿' },
+      { id: 54, dimension: 'N', dimensionName: '自然智能', question: '我对生态和环境保护话题感兴趣', icon: '🌿' },
+      { id: 55, dimension: 'N', dimensionName: '自然智能', question: '我擅长照顾植物和宠物', icon: '🌿' },
+      { id: 56, dimension: 'N', dimensionName: '自然智能', question: '我对自然界的变化很敏感', icon: '🌿' }
+    ];
+
+    const miDescriptions = {
+      L: { name: '语言智能', traits: ['善于表达', '阅读理解强', '文字创作', '语言学习快', '沟通能力强'], strengths: ['口头和书面表达', '语言理解和记忆', '逻辑说服', '文学创作'], suitable: ['写作与编辑', '演讲与主持', '翻译与语言教学', '媒体与传播'] },
+      M: { name: '逻辑数学智能', traits: ['逻辑思维强', '数据分析能力', '善于推理', '数字敏感', '问题解决'], strengths: ['数学运算', '逻辑推理', '科学分析', '编程能力'], suitable: ['科学研究', '数据分析', '编程开发', '工程设计'] },
+      S: { name: '空间智能', traits: ['方向感好', '图像思维', '创意设计', '想象丰富', '视觉敏感'], strengths: ['空间感知', '视觉表达', '设计创意', '图像记忆'], suitable: ['建筑设计', '艺术设计', '摄影摄像', '导航与地理'] },
+      B: { name: '身体运动智能', traits: ['动手能力强', '运动协调', '肢体表达', '操作技能', '触感敏锐'], strengths: ['身体协调', '手工技能', '表演能力', '操作工具'], suitable: ['体育运动', '舞蹈表演', '手工制作', '医学治疗'] },
+      U: { name: '音乐智能', traits: ['音乐敏感', '节奏感强', '旋律记忆', '声音辨识', '创作天赋'], strengths: ['音乐演奏', '歌唱能力', '节奏感知', '音乐创作'], suitable: ['音乐表演', '音乐制作', '音乐教育', '音响工程'] },
+      P: { name: '人际智能', traits: ['善于交际', '同理心强', '团队领导', '协调能力', '感知敏锐'], strengths: ['人际沟通', '团队协作', '领导能力', '冲突调解'], suitable: ['管理咨询', '销售公关', '教育培训', '社会工作'] },
+      I: { name: '内省智能', traits: ['自我认知', '独立思考', '目标明确', '情绪管理', '自律性强'], strengths: ['自我反思', '独立工作', '目标规划', '情绪调节'], suitable: ['心理咨询', '学术研究', '战略规划', '个人创业'] },
+      N: { name: '自然智能', traits: ['热爱自然', '观察敏锐', '环保意识', '生物知识', '户外活动'], strengths: ['自然观察', '生物分类', '环境保护', '野外生存'], suitable: ['环境保护', '农林牧渔', '生态研究', '户外教育'] }
+    };
+
+    const miCareers = {
+      L: [{ title: '作家/编辑', description: '文字创作与内容编辑' }, { title: '记者', description: '新闻采访与报道' }, { title: '教师', description: '知识传授与教学' }, { title: '律师', description: '法律辩护与咨询' }, { title: '主持人', description: '活动主持与表达' }, { title: '翻译', description: '语言翻译服务' }],
+      M: [{ title: '数据分析师', description: '数据处理与分析' }, { title: '程序员', description: '软件开发与编程' }, { title: '金融分析师', description: '金融市场分析' }, { title: '科学家', description: '科学研究与实验' }, { title: '工程师', description: '工程设计与开发' }, { title: '会计', description: '财务核算与管理' }],
+      S: [{ title: '设计师', description: '视觉与创意设计' }, { title: '建筑师', description: '建筑设计与规划' }, { title: '摄影师', description: '摄影创作' }, { title: '飞行员', description: '航空驾驶' }, { title: '艺术家', description: '艺术创作' }, { title: '游戏设计师', description: '游戏美术设计' }],
+      B: [{ title: '运动员', description: '体育竞技' }, { title: '舞蹈家', description: '舞蹈表演与编导' }, { title: '外科医生', description: '手术治疗' }, { title: '工匠', description: '手工艺制作' }, { title: '演员', description: '表演艺术' }, { title: '健身教练', description: '健身指导' }],
+      U: [{ title: '音乐家', description: '音乐演奏与创作' }, { title: '歌手', description: '声乐表演' }, { title: '音乐制作人', description: '音乐制作与编曲' }, { title: 'DJ', description: '音乐混音与创作' }, { title: '音乐教师', description: '音乐教育' }, { title: '音响工程师', description: '音响技术' }],
+      P: [{ title: '企业管理者', description: '团队管理与领导' }, { title: '销售经理', description: '销售管理与拓展' }, { title: '心理咨询师', description: '心理咨询服务' }, { title: '人力资源', description: '人才管理' }, { title: '社会工作者', description: '社会服务' }, { title: '外交官', description: '国际交流' }],
+      I: [{ title: '心理咨询师', description: '心理健康服务' }, { title: '作家', description: '深度写作创作' }, { title: '哲学家', description: '思想研究' }, { title: '创业者', description: '独立创业' }, { title: '顾问', description: '专业咨询' }, { title: '研究员', description: '学术研究' }],
+      N: [{ title: '环保专家', description: '环境保护与管理' }, { title: '生物学家', description: '生物科学研究' }, { title: '农林技术人员', description: '农业林业技术' }, { title: '地理学家', description: '地理研究' }, { title: '导游', description: '旅游向导' }, { title: '兽医', description: '动物医疗护理' }]
+    };
+
+    const careers = {
+      R: [{ title: '机械工程师', description: '设计、开发机械设备和系统' }, { title: '电气技术员', description: '安装、维护电气设备和线路' }, { title: '汽车维修技师', description: '汽车检测与维修' }, { title: '厨师', description: '烹饪各类美食' }, { title: '建筑工人', description: '建筑施工与装修' }],
+      I: [{ title: '研究员', description: '在各领域进行科学研究' }, { title: '数据分析师', description: '分析数据并提取有价值信息' }, { title: '程序员', description: '软件开发与编程' }, { title: '医生', description: '医学诊疗与研究' }, { title: '大学教授', description: '高等教育与学术研究' }],
+      A: [{ title: '平面设计师', description: '视觉设计与创意表达' }, { title: '文案策划', description: '创意文案撰写' }, { title: '摄影师', description: '艺术摄影创作' }, { title: '室内设计师', description: '室内空间设计' }, { title: '游戏设计师', description: '游戏玩法与美术设计' }],
+      S: [{ title: '教师', description: '教育教学工作' }, { title: '心理咨询师', description: '心理健康咨询与服务' }, { title: '社会工作者', description: '社会服务与公益' }, { title: '人力资源专员', description: '人力资源管理与培训' }, { title: '护士', description: '医疗护理服务' }],
+      E: [{ title: '创业者', description: '创办和管理企业' }, { title: '销售经理', description: '销售团队管理与拓展' }, { title: '项目经理', description: '项目规划与执行' }, { title: '律师', description: '法律服务与诉讼' }, { title: '企业高管', description: '企业战略与管理' }],
+      C: [{ title: '会计师', description: '财务核算与审计' }, { title: '行政助理', description: '行政事务处理' }, { title: '质检员', description: '质量检验与控制' }, { title: '银行柜员', description: '银行柜台业务办理' }, { title: '图书馆管理员', description: '图书管理与服务' }],
+      AI: [{ title: 'AI训练师', description: '训练和优化AI模型' }, { title: '提示工程师', description: '设计和优化AI提示词' }, { title: '数据标注师', description: '数据标注与清洗' }, { title: '机器学习工程师', description: '机器学习算法开发' }, { title: 'AI产品经理', description: 'AI产品规划与管理' }]
+    };
+
+    const typeDescriptions = {
+      R: { name: '实际型', traits: ['务实', '动手能力强', '喜欢户外工作', '脚踏实地', '注重实际效果'], strengths: ['动手操作能力强', '喜欢户外和体力活动', '务实肯干', '机械能力强'], suitable: ['需要动手操作的工作', '户外工作环境', '使用工具和设备', '技术和维修领域'], environment: ['户外工作为主', '动手操作空间', '工具设备齐全', '相对独立工作'] },
+      I: { name: '研究型', traits: ['好奇心强', '分析思考', '独立研究', '逻辑性强', '追求真理'], strengths: ['善于分析思考', '独立研究能力', '逻辑思维强', '喜欢探索未知'], suitable: ['研究和分析工作', '解决复杂问题', '独立思考', '科学探索领域'], environment: ['安静专注环境', '研究资源丰富', '独立工作空间', '学术氛围浓厚'] },
+      A: { name: '艺术型', traits: ['创意丰富', '想象力强', '追求美', '表达独特', '喜欢自由'], strengths: ['创意能力强', '审美观好', '善于表达', '想象丰富'], suitable: ['创意设计工作', '艺术创作', '自由发挥空间', '表达和表演领域'], environment: ['创意工作空间', '艺术氛围浓厚', '自由灵活', '鼓励创新'] },
+      S: { name: '社会型', traits: ['乐于助人', '善于交际', '善解人意', '服务意识强', '善于沟通'], strengths: ['人际交往能力强', '善于倾听', '同理心强', '乐于助人'], suitable: ['帮助他人的工作', '人际沟通服务', '教育培训', '医疗护理'], environment: ['人际交流环境', '团队协作为主', '服务导向', '温暖友好氛围'] },
+      E: { name: '企业型', traits: ['领导力强', '自信果断', '善于说服', '追求成功', '敢于冒险'], strengths: ['领导能力强', '说服力强', '善于把握机会', '目标导向'], suitable: ['领导管理岗位', '销售和说服', '创业经营', '政治商业领域'], environment: ['竞争激励环境', '领导决策空间', '商业氛围', '追求成就'] },
+      C: { name: '常规型', traits: ['细心严谨', '注重秩序', '执行力强', '善于整理', '遵守规则'], strengths: ['执行能力强', '细心严谨', '善于整理', '遵守规范'], suitable: ['有条理的工作', '数据处理', '行政事务', '财务金融领域'], environment: ['结构化环境', '明确规范', '秩序井然', '注重细节'] },
+      AI: { name: '人工智能型', traits: ['科技敏感', '数据思维', '善于学习', '拥抱变化', '追求效率'], strengths: ['技术学习能力强', '数据敏感度高', '善于利用工具', '适应变化'], suitable: ['AI相关工作', '数据分析', '智能应用', '技术研发领域'], environment: ['技术驱动环境', '创新开放', '持续学习', '高效协作'] }
+    };
+
+    const combinedCareers = {
+      'RI': [{ title: '牙科技术师', description: '口腔修复体制作' }, { title: '工业设计师', description: '产品设计与开发' }],
+      'RA': [{ title: '动漫制作师', description: '动画设计与制作' }, { title: '家具设计师', description: '家具设计与制作' }],
+      'RS': [{ title: '康复治疗师', description: '康复治疗与训练' }, { title: '体育教练', description: '体育训练与指导' }],
+      'IA': [{ title: '用户体验研究员', description: '用户研究分析' }, { title: '市场研究员', description: '市场调研分析' }],
+      'IE': [{ title: '管理咨询师', description: '企业管理咨询' }, { title: '专利代理人', description: '专利申请代理' }],
+      'IS': [{ title: '医学研究员', description: '医学科学研究' }, { title: '行为分析师', description: '行为研究与分析' }],
+      'AE': [{ title: '品牌经理', description: '品牌管理与推广' }, { title: '广告创意总监', description: '广告创意策划' }],
+      'AS': [{ title: '艺术教师', description: '艺术教育传授' }, { title: '活动策划师', description: '活动创意策划' }],
+      'SE': [{ title: '销售总监', description: '销售团队管理' }, { title: '运营经理', description: '运营管理' }],
+      'SC': [{ title: '人力资源经理', description: '人力资源管理' }, { title: '培训经理', description: '培训体系管理' }],
+      'EC': [{ title: '财务经理', description: '财务管理' }, { title: '运营总监', description: '企业运营管理' }],
+      'CI': [{ title: '财务分析师', description: '财务数据分析' }, { title: '投资分析师', description: '投资分析评估' }],
+      'AI': [{ title: 'AI产品经理', description: 'AI产品规划' }, { title: '科技创业者', description: '科技创新创业' }],
+      'EAI': [{ title: 'AI运营总监', description: 'AI业务运营' }, { title: '智能化转型顾问', description: '企业智能化升级' }]
+    };
+
+    // ========== 题目随机打乱 ==========
+    function shuffleArray(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    let shuffledHollandQuestions = shuffleArray(hollandQuestions);
+    let shuffledMIQuestions = shuffleArray(miQuestions);
+
+    // ========== 工具函数 ==========
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function showLoading(show) {
+      document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+    }
+
+    // ========== 测评进度暂存 ==========
+    function getProgressKey() {
+      return currentTestType === 'holland' ? `holland_progress_${currentUser.id}` : `mi_progress_${currentUser.id}`;
+    }
+
+    function saveProgress() {
+      if (!currentUser) return;
+      localStorage.setItem(getProgressKey(), JSON.stringify({
+        answers: answers,
+        currentPage: currentPage,
+        shuffledQuestionIds: currentTestType === 'holland' 
+          ? shuffledHollandQuestions.map(q => q.id)
+          : shuffledMIQuestions.map(q => q.id),
+        timestamp: Date.now()
+      }));
+    }
+
+    function restoreProgress() {
+      if (!currentUser) return false;
+      const saved = localStorage.getItem(getProgressKey());
+      if (!saved) return false;
+      
+      try {
+        const progress = JSON.parse(saved);
+        if (Date.now() - progress.timestamp < 24 * 60 * 60 * 1000) {
+          answers = progress.answers;
+          currentPage = progress.currentPage;
+          
+          if (currentTestType === 'holland' && progress.shuffledQuestionIds) {
+            shuffledHollandQuestions = progress.shuffledQuestionIds.map(id => 
+              hollandQuestions.find(q => q.id === id)
+            ).filter(Boolean);
+          } else if (currentTestType === 'mi' && progress.shuffledQuestionIds) {
+            shuffledMIQuestions = progress.shuffledQuestionIds.map(id => 
+              miQuestions.find(q => q.id === id)
+            ).filter(Boolean);
+          }
+          
+          return true;
+        }
+      } catch (e) {
+        console.error('恢复进度失败:', e);
+      }
+      return false;
+    }
+
+    function clearProgress() {
+      if (!currentUser) return;
+      localStorage.removeItem(getProgressKey());
+    }
+
+    function saveAndGoHome() {
+      saveProgress();
+      showToast('进度已保存');
+      showPage('homePage');
+    }
+
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      
+      if (pageId === 'testPage') {
+        renderQuestions();
+        updateProgress();
+      } else if (pageId === 'chatPage') {
+        loadChatHistory();
+      }
+    }
+
+    // ========== 确认弹窗 ==========
+    function showConfirmModal(title, content, callback) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmContent').textContent = content;
+      document.getElementById('confirmModal').classList.add('show');
+      confirmCallback = callback;
+    }
+
+    function closeConfirmModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('confirmModal').classList.remove('show');
+      confirmCallback = null;
+    }
+
+    function executeConfirm() {
+      if (confirmCallback) {
+        confirmCallback();
+      }
+      closeConfirmModal();
+    }
+
+    // ========== 首页菜单处理 ==========
+    function handleMenuCard(type) {
+      if (!currentUser && type !== 'chat') {
+        showPage('loginPage');
+        return;
+      }
+
+      switch (type) {
+        case 'chat':
+          if (!currentUser) {
+            showPage('loginPage');
+            return;
+          }
+          showPage('chatPage');
+          break;
+        case 'history':
+          loadHistory();
+          break;
+        case 'test':
+          showPage('selectPage');
+          break;
+        case 'profile':
+          updateProfileInfo();
+          showPage('profilePage');
+          break;
+      }
+    }
+
+    // ========== 认证相关 ==========
+    async function handleRegister() {
+      const phone = document.getElementById('regPhone').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const nickname = document.getElementById('regNickname').value.trim();
+
+      if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+        showToast('请输入正确的手机号');
+        return;
+      }
+      if (!password || password.length < 6) {
+        showToast('密码至少6位');
+        return;
+      }
+      if (!nickname) {
+        showToast('请输入昵称');
+        return;
+      }
+
+      showLoading(true);
+      try {
+        const { data: existing } = await supabaseClient
+          .from('users')
+          .select('id')
+          .eq('phone', phone)
+          .single();
+
+        if (existing) {
+          showToast('该手机号已注册');
+          showLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabaseClient
+          .from('users')
+          .insert({ phone, password, nickname })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        currentUser = data;
+        localStorage.setItem('holland_user', JSON.stringify(data));
+        showToast('注册成功！');
+        updateHomeNickname();
+        showPage('homePage');
+      } catch (err) {
+        console.error('注册失败:', err);
+        showToast('注册失败，请重试');
+      }
+      showLoading(false);
+    }
+
+    async function handleLogin() {
+      const phone = document.getElementById('loginPhone').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      if (!phone || !password) {
+        showToast('请输入手机号和密码');
+        return;
+      }
+
+      showLoading(true);
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('*')
+          .eq('phone', phone)
+          .eq('password', password)
+          .single();
+
+        if (error || !data) {
+          showToast('手机号或密码错误');
+          showLoading(false);
+          return;
+        }
+
+        currentUser = data;
+        localStorage.setItem('holland_user', JSON.stringify(data));
+        showToast('登录成功！');
+        updateHomeNickname();
+        showPage('homePage');
+      } catch (err) {
+        console.error('登录失败:', err);
+        showToast('登录失败，请重试');
+      }
+      showLoading(false);
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      localStorage.removeItem('holland_user');
+      showToast('已退出登录');
+      updateHomeNickname();
+      showPage('homePage');
+    }
+
+    function confirmDeleteAccount() {
+      showConfirmModal('删除账号', '确定要删除账号吗？所有数据将无法恢复。', async () => {
+        showLoading(true);
+        try {
+          await supabaseClient.from('test_results').delete().eq('user_id', currentUser.id);
+          await supabaseClient.from('mi_results').delete().eq('user_id', currentUser.id);
+          await supabaseClient.from('chat_messages').delete().eq('user_id', currentUser.id);
+          await supabaseClient.from('users').delete().eq('id', currentUser.id);
+          
+          currentUser = null;
+          localStorage.removeItem('holland_user');
+          showToast('账号已删除');
+          updateHomeNickname();
+          showPage('homePage');
+        } catch (err) {
+          console.error('删除失败:', err);
+          showToast('删除失败，请重试');
+        }
+        showLoading(false);
+      });
+    }
+
+    function updateHomeNickname() {
+      const el = document.getElementById('homeNickname');
+      if (currentUser) {
+        el.textContent = currentUser.nickname || '已登录';
+      } else {
+        el.textContent = '登录账号管理信息';
+      }
+    }
+
+    function updateProfileInfo() {
+      if (!currentUser) return;
+      document.getElementById('profileAvatar').textContent = (currentUser.nickname || 'U')[0].toUpperCase();
+      document.getElementById('profileName').textContent = currentUser.nickname || '用户';
+      document.getElementById('profilePhone').textContent = currentUser.phone || '';
+    }
+
+    function checkAuth() {
+      const saved = localStorage.getItem('holland_user');
+      if (saved) {
+        try {
+          currentUser = JSON.parse(saved);
+          updateHomeNickname();
+        } catch (e) {
+          localStorage.removeItem('holland_user');
+        }
+      }
+    }
+
+    // ========== 测评逻辑 ==========
+    function getCurrentQuestions() {
+      return currentTestType === 'holland' ? shuffledHollandQuestions : shuffledMIQuestions;
+    }
+
+    function startTest(type) {
+      currentTestType = type;
+      currentPage = 1;
+      answers = {};
+      
+      if (type === 'holland') {
+        document.getElementById('testTitle').textContent = '霍兰德测评';
+      } else {
+        document.getElementById('testTitle').textContent = '多元智能测评';
+      }
+      
+      // 尝试恢复进度
+      if (restoreProgress()) {
+        showToast('已恢复上次进度');
+      }
+      
+      showPage('testPage');
+    }
+
+    function handleTestBack() {
+      showConfirmModal('退出测评', '确定要退出吗？当前进度会自动保存。', () => {
+        saveProgress();
+        showPage('selectPage');
+      });
+    }
+
+    function renderQuestions() {
+      const questions = getCurrentQuestions();
+      const questionsPerPage = 7;
+      const startIdx = (currentPage - 1) * questionsPerPage;
+      const endIdx = Math.min(startIdx + questionsPerPage, questions.length);
+      const pageQuestions = questions.slice(startIdx, endIdx);
+
+      const container = document.getElementById('questionsContainer');
+      container.innerHTML = pageQuestions.map(q => `
+        <div class="question-item">
+          <div class="question-header">
+            <div class="question-number">${q.id}</div>
+            <div class="question-text">
+              <span style="margin-right: 8px;">${q.icon}</span>
+              ${q.question}
+            </div>
+          </div>
+          <div class="question-options">
+            ${[1, 2, 3, 4, 5].map(score => `
+              <button class="option-btn ${answers[q.id] === score ? 'selected' : ''}" 
+                      onclick="selectAnswer(${q.id}, ${score}, this)">
+                ${score === 1 ? '非常不符合' : score === 2 ? '不太符合' : score === 3 ? '一般' : score === 4 ? '比较符合' : '非常符合'}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectAnswer(questionId, score, btn) {
+      answers[questionId] = score;
+      
+      // 更新按钮样式
+      const parent = btn.parentElement;
+      parent.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      
+      // 保存进度
+      saveProgress();
+      
+      // 更新进度显示
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const questions = getCurrentQuestions();
+      const questionsPerPage = 7;
+      const totalPages = Math.ceil(questions.length / questionsPerPage);
+      const startIdx = (currentPage - 1) * questionsPerPage + 1;
+      const endIdx = Math.min(currentPage * questionsPerPage, questions.length);
+      const progress = (Object.keys(answers).length / questions.length) * 100;
+
+      document.getElementById('progressText').textContent = `第 ${startIdx}-${endIdx} 题`;
+      document.getElementById('progressPercent').textContent = `${Math.round(progress)}%`;
+      document.getElementById('progressFill').style.width = `${progress}%`;
+
+      // 更新维度标签
+      const currentQ = questions[(currentPage - 1) * questionsPerPage];
+      if (currentQ) {
+        document.getElementById('dimensionBadge').innerHTML = `
+          <span class="icon">${currentQ.icon}</span>
+          <span>${currentQ.dimensionName} · 第 ${currentPage} 页 / 共 ${totalPages} 页</span>
+        `;
+      }
+
+      // 更新按钮显示
+      document.getElementById('prevBtn').style.display = currentPage > 1 ? 'block' : 'none';
+      document.getElementById('nextBtn').style.display = currentPage < totalPages ? 'block' : 'none';
+      document.getElementById('submitBtn').style.display = currentPage === totalPages ? 'block' : 'none';
+      document.getElementById('saveBackBtn').style.display = currentPage < totalPages ? 'block' : 'none';
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderQuestions();
+        updateProgress();
+      }
+    }
+
+    function nextPage() {
+      const questions = getCurrentQuestions();
+      const questionsPerPage = 7;
+      const totalPages = Math.ceil(questions.length / questionsPerPage);
+      
+      // 检查当前页是否有未答题目
+      const startIdx = (currentPage - 1) * questionsPerPage;
+      const endIdx = Math.min(startIdx + questionsPerPage, questions.length);
+      const currentPageQuestions = questions.slice(startIdx, endIdx);
+      const unansweredOnPage = currentPageQuestions.filter(q => !answers[q.id]);
+      
+      if (unansweredOnPage.length > 0) {
+        const unansweredIds = unansweredOnPage.map(q => q.id).join('、');
+        showToast(`请先完成第 ${unansweredIds} 题`);
+        return;
+      }
+      
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderQuestions();
+        updateProgress();
+      }
+    }
+
+    async function submitTest() {
+      const questions = getCurrentQuestions();
+      
+      if (Object.keys(answers).length < questions.length) {
+        const unanswered = questions.filter(q => !answers[q.id]);
+        showToast(`请完成第 ${unanswered[0].id} 题`);
+        return;
+      }
+
+      showLoading(true);
+      try {
+        if (currentTestType === 'holland') {
+          await submitHollandTest();
+        } else {
+          await submitMITest();
+        }
+        clearProgress();
+      } catch (err) {
+        console.error('保存失败:', err);
+        showToast('保存失败，请重试');
+      }
+      showLoading(false);
+    }
+
+    // ========== 霍兰德测评提交 ==========
+    async function submitHollandTest() {
+      const questions = getCurrentQuestions();
+      
+      const scores = { R: 0, I: 0, A: 0, S: 0, E: 0, C: 0, AI: 0 };
+      questions.forEach(q => {
+        scores[q.dimension] += answers[q.id];
+      });
+
+      const dominantType = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+
+      const { data, error } = await supabaseClient
+        .from('test_results')
+        .insert({
+          user_id: currentUser.id,
+          r_score: scores.R,
+          i_score: scores.I,
+          a_score: scores.A,
+          s_score: scores.S,
+          e_score: scores.E,
+          c_score: scores.C,
+          ai_score: scores.AI,
+          dominant_type: dominantType,
+          answers: answers
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      testResults = data;
+      renderHollandResult(scores, dominantType);
+      showPage('hollandResultPage');
+    }
+
+    function renderHollandResult(scores, dominantType) {
+      const dim = dimensions.find(d => d.code === dominantType);
+      const typeInfo = typeDescriptions[dominantType];
+      const typeCareers = careers[dominantType] || [];
+      const combined = getCombinedCareers(scores);
+
+      document.getElementById('resultType').textContent = dim.icon;
+      document.getElementById('resultName').textContent = dim.name;
+      document.getElementById('resultFullName').textContent = dim.fullName;
+
+      const scoresList = document.getElementById('scoresList');
+      scoresList.innerHTML = dimensions.map(d => `
+        <div class="score-item">
+          <div class="score-icon" style="background: ${d.color}20; color: ${d.color};">${d.icon}</div>
+          <div class="score-info">
+            <div class="score-name">${d.name} ${d.fullName}</div>
+            <div class="score-bar">
+              <div class="score-fill" style="width: ${(scores[d.code] / 35) * 100}%; background: ${d.color};"></div>
+            </div>
+          </div>
+          <div class="score-value">${scores[d.code]}</div>
+        </div>
+      `).join('');
+
+      const traitsList = document.getElementById('traitsList');
+      traitsList.innerHTML = (typeInfo?.traits || []).map(t => `<span class="trait-tag">${t}</span>`).join('');
+
+      const careersList = document.getElementById('careersList');
+      const allCareers = [...typeCareers, ...combined].slice(0, 6);
+      careersList.innerHTML = allCareers.map(c => `
+        <div class="career-card">
+          <div class="career-title">${c.title}</div>
+          <div class="career-desc">${c.description}</div>
+        </div>
+      `).join('');
+
+      renderRadarChart(scores);
+    }
+
+    function getCombinedCareers(scores) {
+      const sortedTypes = Object.entries(scores)
+        .sort((a, b) => b[1] - a[1])
+        .map(([type]) => type);
+      
+      const topTypes = sortedTypes.slice(0, 3).join('');
+      const combined = combinedCareers[topTypes] || [];
+      
+      if (combined.length === 0 && sortedTypes.length >= 2) {
+        for (let i = 0; i < sortedTypes.length - 1; i++) {
+          for (let j = i + 1; j < sortedTypes.length; j++) {
+            const combo = sortedTypes[i] + sortedTypes[j];
+            if (combinedCareers[combo]) {
+              combined.push(...combinedCareers[combo]);
+            }
+          }
+        }
+      }
+      
+      return combined.slice(0, 6);
+    }
+
+    function renderRadarChart(scores) {
+      const ctx = document.getElementById('radarChart').getContext('2d');
+      
+      if (radarChart) {
+        radarChart.destroy();
+      }
+
+      radarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: dimensions.map(d => d.name),
+          datasets: [{
+            label: '你的得分',
+            data: dimensions.map(d => scores[d.code]),
+            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+            borderColor: 'rgba(99, 102, 241, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(99, 102, 241, 1)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 35,
+              ticks: { stepSize: 7, font: { size: 10 } },
+              pointLabels: { font: { size: 12, weight: 'bold' } }
+            }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // ========== 多元智能测评提交 ==========
+    async function submitMITest() {
+      const questions = getCurrentQuestions();
+      
+      const scores = { L: 0, M: 0, S: 0, B: 0, U: 0, P: 0, I: 0, N: 0 };
+      questions.forEach(q => {
+        scores[q.dimension] += answers[q.id];
+      });
+
+      const dominantType = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+
+      const { data, error } = await supabaseClient
+        .from('mi_results')
+        .insert({
+          user_id: currentUser.id,
+          l_score: scores.L,
+          m_score: scores.M,
+          s_score: scores.S,
+          b_score: scores.B,
+          u_score: scores.U,
+          p_score: scores.P,
+          i_score: scores.I,
+          n_score: scores.N,
+          dominant_type: dominantType,
+          answers: answers
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      miResults = data;
+      renderMIResult(scores, dominantType);
+      showPage('miResultPage');
+    }
+
+    function renderMIResult(scores, dominantType) {
+      const dim = miDimensions.find(d => d.code === dominantType);
+      const typeInfo = miDescriptions[dominantType];
+      const typeCareers = miCareers[dominantType] || [];
+
+      document.getElementById('miResultType').textContent = dim.icon;
+      document.getElementById('miResultName').textContent = dim.name;
+      document.getElementById('miResultFullName').textContent = dim.description;
+
+      const scoresList = document.getElementById('miScoresList');
+      scoresList.innerHTML = miDimensions.map(d => `
+        <div class="score-item">
+          <div class="score-icon" style="background: ${d.color}20; color: ${d.color};">${d.icon}</div>
+          <div class="score-info">
+            <div class="score-name">${d.name}</div>
+            <div class="score-bar">
+              <div class="score-fill" style="width: ${(scores[d.code] / 35) * 100}%; background: ${d.color};"></div>
+            </div>
+          </div>
+          <div class="score-value">${scores[d.code]}</div>
+        </div>
+      `).join('');
+
+      const traitsList = document.getElementById('miTraitsList');
+      traitsList.innerHTML = (typeInfo?.traits || []).map(t => `<span class="trait-tag">${t}</span>`).join('');
+
+      const careersList = document.getElementById('miCareersList');
+      careersList.innerHTML = typeCareers.map(c => `
+        <div class="career-card">
+          <div class="career-title">${c.title}</div>
+          <div class="career-desc">${c.description}</div>
+        </div>
+      `).join('');
+
+      renderMIRadarChart(scores);
+    }
+
+    function renderMIRadarChart(scores) {
+      const ctx = document.getElementById('miRadarChart').getContext('2d');
+      
+      if (miRadarChart) {
+        miRadarChart.destroy();
+      }
+
+      miRadarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: miDimensions.map(d => d.name),
+          datasets: [{
+            label: '你的得分',
+            data: miDimensions.map(d => scores[d.code]),
+            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+            borderColor: 'rgba(16, 185, 129, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(16, 185, 129, 1)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 35,
+              ticks: { stepSize: 7, font: { size: 10 } },
+              pointLabels: { font: { size: 11, weight: 'bold' } }
+            }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // ========== 重新测评 ==========
+    function resetAndRetest() {
+      answers = {};
+      currentPage = 1;
+      testResults = null;
+      clearProgress();
+      shuffledHollandQuestions = shuffleArray(hollandQuestions);
+      showToast('已重置，开始新的霍兰德测评');
+      startTest('holland');
+    }
+
+    function resetMITest() {
+      answers = {};
+      currentPage = 1;
+      miResults = null;
+      clearProgress();
+      shuffledMIQuestions = shuffleArray(miQuestions);
+      showToast('已重置，开始新的多元智能测评');
+      startTest('mi');
+    }
+
+    // ========== PDF下载 ==========
+    async function downloadPDF() {
+      showLoading(true);
+      try {
+        const dim = dimensions.find(d => d.code === testResults?.dominant_type || 'AI');
+        const typeInfo = typeDescriptions[testResults?.dominant_type || 'AI'];
+        const scores = {
+          R: testResults?.r_score || 0,
+          I: testResults?.i_score || 0,
+          A: testResults?.a_score || 0,
+          S: testResults?.s_score || 0,
+          E: testResults?.e_score || 0,
+          C: testResults?.c_score || 0,
+          AI: testResults?.ai_score || 0
+        };
+        const allCareers = [...(careers[testResults?.dominant_type] || []), ...getCombinedCareers(scores)].slice(0, 6);
+
+        const pdfContent = document.getElementById('pdfContent');
+        pdfContent.innerHTML = `
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="font-size: 24px; color: #6366F1; margin-bottom: 8px;">🧭 霍兰德职业兴趣测评报告</h1>
+            <p style="color: #666; font-size: 14px;">测评用户：${currentUser?.nickname || '用户'} | 测评日期：${new Date().toLocaleDateString()}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 20px 0; padding: 15px; background: #667eea; border-radius: 12px; color: white;">
+            <div style="font-size: 36px; margin-bottom: 8px;">${dim.icon}</div>
+            <div style="font-size: 20px; font-weight: bold;">主导类型：${dim.name}</div>
+            <div style="font-size: 12px; opacity: 0.9;">${dim.fullName}</div>
+          </div>
+          
+          <h2 style="color: #333; font-size: 16px; border-bottom: 2px solid #6366F1; padding-bottom: 8px; margin-top: 20px;">📊 各维度得分</h2>
+          <div style="margin: 15px 0;">
+            ${dimensions.map(d => `
+              <div style="padding: 10px; margin-bottom: 8px; background: #f8f9fa; border-left: 3px solid ${d.color};">
+                <span style="font-size: 14px;">${d.icon} ${d.name}</span>
+                <span style="float: right; font-weight: bold; color: ${d.color};">${scores[d.code]}/35</span>
+                <div style="height: 6px; background: #e0e0e0; border-radius: 3px; margin-top: 5px;">
+                  <div style="height: 100%; width: ${(scores[d.code] / 35) * 100}%; background: ${d.color}; border-radius: 3px;"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <h2 style="color: #333; font-size: 16px; border-bottom: 2px solid #6366F1; padding-bottom: 8px; margin-top: 20px;">✨ 性格特质</h2>
+          <div style="margin: 15px 0; line-height: 2;">
+            ${(typeInfo?.traits || []).map(t => `<span style="padding: 4px 12px; margin: 2px; background: #f3f4f6; border-radius: 12px; font-size: 12px; display: inline-block;">${t}</span>`).join('')}
+          </div>
+          
+          <h2 style="color: #333; font-size: 16px; border-bottom: 2px solid #6366F1; padding-bottom: 8px; margin-top: 20px;">💼 推荐职业</h2>
+          <div style="margin: 15px 0;">
+            ${allCareers.map(c => `
+              <div style="padding: 10px; margin-bottom: 8px; background: #f9fafb; border-radius: 8px;">
+                <div style="font-weight: bold; color: #333; font-size: 14px;">${c.title}</div>
+                <div style="font-size: 11px; color: #666;">${c.description}</div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center; color: #999; font-size: 11px;">
+            本报告由「发现天赋」霍兰德职业兴趣测评系统生成<br>
+            仅供职业规划参考，不作为专业职业建议
+          </div>
+        `;
+
+        const pdfTemplate = document.getElementById('pdfTemplate');
+        pdfTemplate.style.display = 'block';
+        pdfTemplate.style.position = 'absolute';
+        pdfTemplate.style.left = '0';
+        pdfTemplate.style.top = '0';
+        pdfTemplate.style.width = '794px';
+        pdfTemplate.style.background = 'white';
+        pdfTemplate.style.zIndex = '-1';
+        pdfTemplate.style.overflow = 'visible';
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const opt = {
+          margin: [15, 15, 15, 15],
+          filename: `霍兰德测评报告_${currentUser?.nickname || '用户'}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true, 
+            logging: false, 
+            allowTaint: true, 
+            scrollY: 0, 
+            scrollX: 0,
+            width: 794,
+            height: 1123
+          },
+          jsPDF: { 
+            unit: 'mm', 
+            format: 'a4', 
+            orientation: 'portrait'
+          }
+        };
+
+        await html2pdf().set(opt).from(pdfContent).save();
+        
+        pdfTemplate.style.display = 'none';
+        showToast('PDF下载成功！');
+      } catch (err) {
+        console.error('PDF生成失败:', err);
+        showToast('PDF生成失败，请重试');
+      }
+      showLoading(false);
+    }
+
+    async function downloadMIPDF() {
+      showLoading(true);
+      try {
+        const dim = miDimensions.find(d => d.code === miResults?.dominant_type || 'L');
+        const typeInfo = miDescriptions[miResults?.dominant_type || 'L'];
+        const scores = {
+          L: miResults?.l_score || 0,
+          M: miResults?.m_score || 0,
+          S: miResults?.s_score || 0,
+          B: miResults?.b_score || 0,
+          U: miResults?.u_score || 0,
+          P: miResults?.p_score || 0,
+          I: miResults?.i_score || 0,
+          N: miResults?.n_score || 0
+        };
+        const typeCareers = miCareers[miResults?.dominant_type] || [];
+
+        const pdfContent = document.getElementById('pdfContent');
+        pdfContent.innerHTML = `
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="font-size: 24px; color: #10B981; margin-bottom: 8px;">🧠 多元智能测评报告</h1>
+            <p style="color: #666; font-size: 14px;">测评用户：${currentUser?.nickname || '用户'} | 测评日期：${new Date().toLocaleDateString()}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 20px 0; padding: 15px; background: #10B981; border-radius: 12px; color: white;">
+            <div style="font-size: 36px; margin-bottom: 8px;">${dim.icon}</div>
+            <div style="font-size: 20px; font-weight: bold;">核心天赋：${dim.name}</div>
+            <div style="font-size: 12px; opacity: 0.9;">${dim.description}</div>
+          </div>
+          
+          <h2 style="color: #333; font-size: 16px; border-bottom: 2px solid #10B981; padding-bottom: 8px; margin-top: 20px;">📊 各智能得分</h2>
+          <div style="margin: 15px 0;">
+            ${miDimensions.map(d => `
+              <div style="padding: 10px; margin-bottom: 8px; background: #f8f9fa; border-left: 3px solid ${d.color};">
+                <span style="font-size: 14px;">${d.icon} ${d.name}</span>
+                <span style="float: right; font-weight: bold; color: ${d.color};">${scores[d.code]}/35</span>
+                <div style="height: 6px; background: #e0e0e0; border-radius: 3px; margin-top: 5px;">
+                  <div style="height: 100%; width: ${(scores[d.code] / 35) * 100}%; background: ${d.color}; border-radius: 3px;"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <h2 style="color: #333; font-size: 16px; border-bottom: 2px solid #10B981; padding-bottom: 8px; margin-top: 20px;">✨ 智能特点</h2>
+          <div style="margin: 15px 0; line-height: 2;">
+            ${(typeInfo?.traits || []).map(t => `<span style="padding: 4px 12px; margin: 2px; background: #f3f4f6; border-radius: 12px; font-size: 12px; display: inline-block;">${t}</span>`).join('')}
+          </div>
+          
+          <h2 style="color: #333; font-size: 16px; border-bottom: 2px solid #10B981; padding-bottom: 8px; margin-top: 20px;">💼 推荐发展方向</h2>
+          <div style="margin: 15px 0;">
+            ${typeCareers.map(c => `
+              <div style="padding: 10px; margin-bottom: 8px; background: #f9fafb; border-radius: 8px;">
+                <div style="font-weight: bold; color: #333; font-size: 14px;">${c.title}</div>
+                <div style="font-size: 11px; color: #666;">${c.description}</div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center; color: #999; font-size: 11px;">
+            本报告由「发现天赋」多元智能测评系统生成<br>
+            仅供职业规划参考，不作为专业职业建议
+          </div>
+        `;
+
+        const pdfTemplate = document.getElementById('pdfTemplate');
+        pdfTemplate.style.display = 'block';
+        pdfTemplate.style.position = 'absolute';
+        pdfTemplate.style.left = '0';
+        pdfTemplate.style.top = '0';
+        pdfTemplate.style.width = '794px';
+        pdfTemplate.style.background = 'white';
+        pdfTemplate.style.zIndex = '-1';
+        pdfTemplate.style.overflow = 'visible';
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const opt = {
+          margin: [15, 15, 15, 15],
+          filename: `多元智能测评报告_${currentUser?.nickname || '用户'}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true, 
+            logging: false, 
+            allowTaint: true, 
+            scrollY: 0, 
+            scrollX: 0,
+            width: 794,
+            height: 1123
+          },
+          jsPDF: { 
+            unit: 'mm', 
+            format: 'a4', 
+            orientation: 'portrait'
+          }
+        };
+
+        await html2pdf().set(opt).from(pdfContent).save();
+        
+        pdfTemplate.style.display = 'none';
+        showToast('PDF下载成功！');
+      } catch (err) {
+        console.error('PDF生成失败:', err);
+        showToast('PDF生成失败，请重试');
+      }
+      showLoading(false);
+    }
+
+    // ========== 历史记录加载 ==========
+    async function loadHistory() {
+      if (!currentUser) {
+        showPage('loginPage');
+        return;
+      }
+
+      showLoading(true);
+      try {
+        const { data: hollandData, error: hollandError } = await supabaseClient
+          .from('test_results')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false });
+
+        if (hollandError) throw hollandError;
+
+        const { data: miData, error: miError } = await supabaseClient
+          .from('mi_results')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false });
+
+        if (miError) throw miError;
+
+        const historyList = document.getElementById('historyList');
+        
+        const allRecords = [
+          ...(hollandData || []).map(r => ({ ...r, type: 'holland', test_type: '霍兰德测评' })),
+          ...(miData || []).map(r => ({ ...r, type: 'mi', test_type: '多元智能测评' }))
+        ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        if (allRecords.length === 0) {
+          historyList.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: #9CA3AF;">
+              <div style="font-size: 48px; margin-bottom: 16px;">📋</div>
+              <div style="font-size: 14px;">暂无测评记录</div>
+              <div style="font-size: 12px; margin-top: 8px;">完成测评后将自动保存</div>
+            </div>
+          `;
+        } else {
+          historyList.innerHTML = allRecords.map(record => {
+            const date = new Date(record.created_at).toLocaleDateString('zh-CN', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+
+            let icon, name;
+            if (record.type === 'holland') {
+              const dim = dimensions.find(d => d.code === record.dominant_type);
+              icon = dim?.icon || '🤖';
+              name = dim?.name || '未知';
+            } else {
+              const dim = miDimensions.find(d => d.code === record.dominant_type);
+              icon = dim?.icon || '🧠';
+              name = dim?.name || '未知';
+            }
+
+            return `
+              <div class="history-item" onclick="viewHistoryResult('${record.id}', '${record.type}')">
+                <div class="history-date">
+                  ${date} <span class="history-badge">${record.test_type}</span>
+                </div>
+                <div class="history-result">
+                  <span class="history-type">${icon}</span>
+                  <span class="history-name">${name}</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        showPage('historyPage');
+      } catch (err) {
+        console.error('加载历史记录失败:', err);
+        showToast('加载失败: ' + (err.message || '请重试'));
+      }
+      showLoading(false);
+    }
+
+    async function viewHistoryResult(resultId, type) {
+      showLoading(true);
+      try {
+        if (type === 'holland') {
+          const { data, error } = await supabaseClient
+            .from('test_results')
+            .select('*')
+            .eq('id', resultId)
+            .single();
+
+          if (error) throw error;
+
+          testResults = data;
+          const scores = {
+            R: data.r_score || 0,
+            I: data.i_score || 0,
+            A: data.a_score || 0,
+            S: data.s_score || 0,
+            E: data.e_score || 0,
+            C: data.c_score || 0,
+            AI: data.ai_score || 0
+          };
+          renderHollandResult(scores, data.dominant_type);
+          showPage('hollandResultPage');
+        } else {
+          const { data, error } = await supabaseClient
+            .from('mi_results')
+            .select('*')
+            .eq('id', resultId)
+            .single();
+
+          if (error) throw error;
+
+          miResults = data;
+          const scores = {
+            L: data.l_score || 0,
+            M: data.m_score || 0,
+            S: data.s_score || 0,
+            B: data.b_score || 0,
+            U: data.u_score || 0,
+            P: data.p_score || 0,
+            I: data.i_score || 0,
+            N: data.n_score || 0
+          };
+          renderMIResult(scores, data.dominant_type);
+          showPage('miResultPage');
+        }
+      } catch (err) {
+        console.error('加载记录失败:', err);
+        showToast('加载失败，请重试');
+      }
+      showLoading(false);
+    }
+
+    // ========== AI聊天功能 ==========
+    async function loadChatHistory() {
+      if (!currentUser) return;
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from('chat_messages')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: true })
+          .limit(50);
+        
+        if (error) throw error;
+        
+        chatHistory = (data || []).map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+        
+        renderChatMessages();
+        
+        // 如果没有历史消息，添加欢迎消息
+        if (chatHistory.length === 0) {
+          addWelcomeMessage();
+        }
+      } catch (err) {
+        console.error('加载聊天历史失败:', err);
+        chatHistory = [];
+        addWelcomeMessage();
+      }
+    }
+
+    function addWelcomeMessage() {
+      const welcomeMsg = "你好，我是坚林启明，你的职业指导专家。我注意到你还没进行职业测评，建议先完成测评，这样我能更好地了解你的职业兴趣和天赋优势。\n\n不过，如果你已经有困惑想聊一聊，也可以直接告诉我。你最近在职业发展上有什么困惑吗？";
+      
+      chatHistory.push({
+        role: 'assistant',
+        content: welcomeMsg
+      });
+      
+      renderChatMessages();
+    }
+
+    function renderChatMessages() {
+      const container = document.getElementById('chatMessages');
+      
+      container.innerHTML = chatHistory.map(msg => `
+        <div class="chat-message ${msg.role}">
+          <div class="chat-avatar">
+            ${msg.role === 'assistant' ? '🎭' : '👤'}
+          </div>
+          <div class="chat-bubble">${formatMessage(msg.content)}</div>
+        </div>
+      `).join('');
+      
+      // 滚动到底部
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function formatMessage(content) {
+      // 简单的换行处理
+      return content.replace(/\n/g, '<br>');
+    }
+
+    function handleChatKeydown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendChatMessage();
+      }
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const message = input.value.trim();
+      
+      if (!message || isChatLoading) return;
+      
+      // 添加用户消息
+      chatHistory.push({
+        role: 'user',
+        content: message
+      });
+      
+      input.value = '';
+      renderChatMessages();
+      
+      // 显示加载状态
+      isChatLoading = true;
+      document.getElementById('chatSendBtn').disabled = true;
+      showTypingIndicator();
+      
+      try {
+        // 获取用户的测评结果作为上下文
+        const userContext = await getUserTestContext();
+        
+        // 构建消息（只包含用户和助手的对话，不包含系统消息）
+        const messages = buildMessages(message, userContext);
+        
+        // 调用Edge Function
+        const response = await callEdgeFunction(messages);
+        
+        // 移除加载指示器
+        hideTypingIndicator();
+        
+        // 添加AI回复
+        chatHistory.push({
+          role: 'assistant',
+          content: response
+        });
+        
+        renderChatMessages();
+        
+        // 保存到数据库
+        await saveChatMessages(message, response);
+        
+      } catch (err) {
+        console.error('AI调用失败:', err);
+        hideTypingIndicator();
+        showToast('AI服务暂时不可用，请稍后重试');
+      }
+      
+      isChatLoading = false;
+      document.getElementById('chatSendBtn').disabled = false;
+    }
+
+    async function getUserTestContext() {
+      if (!currentUser) return '';
+      
+      try {
+        // 获取霍兰德测评结果
+        const { data: hollandData } = await supabaseClient
+          .from('test_results')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        // 获取多元智能测评结果
+        const { data: miData } = await supabaseClient
+          .from('mi_results')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        let context = '';
+        
+        if (hollandData) {
+          const dim = dimensions.find(d => d.code === hollandData.dominant_type);
+          context += `\n【霍兰德测评结果】\n`;
+          context += `主导类型：${dim?.name || hollandData.dominant_type}\n`;
+          context += `各维度得分：R=${hollandData.r_score}, I=${hollandData.i_score}, A=${hollandData.a_score}, S=${hollandData.s_score}, E=${hollandData.e_score}, C=${hollandData.c_score}, AI=${hollandData.ai_score}\n`;
+        }
+        
+        if (miData) {
+          const dim = miDimensions.find(d => d.code === miData.dominant_type);
+          context += `\n【多元智能测评结果】\n`;
+          context += `核心天赋：${dim?.name || miData.dominant_type}\n`;
+          context += `各智能得分：语言=${miData.l_score}, 逻辑数学=${miData.m_score}, 空间=${miData.s_score}, 身体运动=${miData.b_score}, 音乐=${miData.u_score}, 人际=${miData.p_score}, 内省=${miData.i_score}, 自然=${miData.n_score}\n`;
+        }
+        
+        return context;
+      } catch (err) {
+        console.error('获取测评上下文失败:', err);
+        return '';
+      }
+    }
+
+    function buildMessages(userMessage, userContext) {
+      const messages = [];
+      
+      // 添加用户测评结果作为系统消息（如果有的话）
+      if (userContext) {
+        messages.push({
+          role: 'system',
+          content: `来访者${currentUser?.nickname || ''}的测评结果：${userContext}`
+        });
+      }
+      
+      // 添加历史对话（保留最近10轮，不含欢迎消息）
+      const recentHistory = chatHistory.slice(-20).filter(msg => 
+        msg.role === 'user' || msg.role === 'assistant'
+      );
+      messages.push(...recentHistory);
+      
+      // 添加当前用户消息
+      messages.push({ role: 'user', content: userMessage });
+      
+      return messages;
+    }
+
+    async function callEdgeFunction(messages) {
+      const response = await fetch(EDGE_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ messages })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `请求失败: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.content || '抱歉，我暂时无法回复。';
+    }
+
+    async function saveChatMessages(userMessage, assistantMessage) {
+      if (!currentUser) {
+        console.warn('保存聊天记录失败: 用户未登录');
+        return;
+      }
+      
+      try {
+        // 保存用户消息
+        const { error: userError } = await supabaseClient
+          .from('chat_messages')
+          .insert({
+            user_id: currentUser.id,
+            role: 'user',
+            content: userMessage
+          });
+        
+        if (userError) {
+          console.error('保存用户消息失败:', userError);
+          showToast('保存聊天记录失败: ' + userError.message);
+          return;
+        }
+        
+        // 保存助手消息
+        const { error: assistantError } = await supabaseClient
+          .from('chat_messages')
+          .insert({
+            user_id: currentUser.id,
+            role: 'assistant',
+            content: assistantMessage
+          });
+        
+        if (assistantError) {
+          console.error('保存助手消息失败:', assistantError);
+          showToast('保存聊天记录失败: ' + assistantError.message);
+          return;
+        }
+        
+        console.log('聊天记录保存成功');
+      } catch (err) {
+        console.error('保存聊天记录异常:', err);
+        showToast('保存聊天记录异常: ' + err.message);
+      }
+    }
+
+    function showTypingIndicator() {
+      const container = document.getElementById('chatMessages');
+      const indicator = document.createElement('div');
+      indicator.id = 'typingIndicator';
+      indicator.className = 'chat-message assistant';
+      indicator.innerHTML = `
+        <div class="chat-avatar">🎭</div>
+        <div class="chat-bubble">
+          <div class="typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+      `;
+      container.appendChild(indicator);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const indicator = document.getElementById('typingIndicator');
+      if (indicator) {
+        indicator.remove();
+      }
+    }
+
+    // ========== 初始化 ==========
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      updateHomeNickname();
+    });
+  </script>
+</body>
+</html>
